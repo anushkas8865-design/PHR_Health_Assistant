@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Personal Health Record (PHR) Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-icon" aria-hidden="true">&#9877;</span>
+                <div>
+                    <h1>Intelligent PHR Assistant</h1>
+                    <p class="tagline">Personal Health Records &amp; Medical Knowledge Retrieval</p>
+                </div>
+            </div>
+            <div class="prototype-badge" role="note">
+                Academic Prototype &bull; Non-Diagnostic
+            </div>
+        </div>
+    </header>
+
+    <!-- Global In-App Alert Banner for Reminders and Critical Notices -->
+    <aside id="alert-banner" class="alert-banner hidden" role="alert" aria-live="assertive">
+        <div class="alert-content">
+            <span class="alert-icon" aria-hidden="true">&#9200;</span>
+            <div id="alert-message" class="alert-message"></div>
+            <div class="alert-actions">
+                <button type="button" id="alert-ack-btn" class="btn btn-sm btn-primary">Acknowledge</button>
+                <button type="button" id="alert-dismiss-btn" class="btn btn-sm btn-secondary">Dismiss</button>
+            </div>
+        </div>
+        <p class="alert-disclaimer">
+            Notice: Acknowledging confirms that this alert was viewed. It does not verify that medication was taken.
+        </p>
+    </aside>
+
+    <main class="app-main">
+        <!-- Navigation Tabs -->
+        <nav class="tab-nav" aria-label="Application Sections">
+            <ul role="tablist">
+                <li role="presentation">
+                    <button role="tab" id="tab-btn-chat" aria-selected="true" aria-controls="panel-chat" tabindex="0">
+                        &#128172; Medical Q&amp;A
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button role="tab" id="tab-btn-record" aria-selected="false" aria-controls="panel-record" tabindex="-1">
+                        &#9998; Record Entry
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="panel-history" tabindex="-1">
+                        &#128197; Health History
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button role="tab" id="tab-btn-reminders" aria-selected="false" aria-controls="panel-reminders" tabindex="-1">
+                        &#128337; Medication Reminders
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button role="tab" id="tab-btn-summary" aria-selected="false" aria-controls="panel-summary" tabindex="-1">
+                        &#128202; Health Summary
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Feature 1: Medical Q&A Chatbot -->
+        <section id="panel-chat" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-chat">
+            <div class="panel-header">
+                <h2>Medical Question Retrieval</h2>
+                <p class="panel-desc">
+                    Search verified NIH public medical guidance via the MedQuAD dataset. 
+                    This search retrieves general medical literature and is not personalized clinical diagnosis.
+                </p>
+            </div>
+
+            <form id="chat-form" class="card form-card">
+                <div class="form-group">
+                    <label for="chat-input">Enter a medical or health question:</label>
+                    <div class="input-with-button">
+                        <input type="text" id="chat-input" name="question" required 
+                               placeholder="e.g., What are the symptoms of adult acute lymphoblastic leukemia?"
+                               autocomplete="off">
+                        <button type="submit" id="chat-submit-btn" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
+            </form>
+
+            <div id="chat-result-area" class="result-area hidden">
+                <div id="chat-card" class="card result-card">
+                    <div class="card-header">
+                        <span id="chat-status-badge" class="badge">Matched</span>
+                        <span id="chat-score-text" class="meta-text"></span>
+                    </div>
+                    <div class="card-body">
+                        <h3 id="chat-query-echo" class="query-echo"></h3>
+                        <div class="meta-grid">
+                            <div><strong>Condition Focus:</strong> <span id="chat-focus">-</span></div>
+                            <div><strong>Source Authority:</strong> <span id="chat-source">-</span></div>
+                            <div><strong>Question Type:</strong> <span id="chat-qtype">-</span></div>
+                            <div><strong>Matched Dataset Query:</strong> <span id="chat-matched-q">-</span></div>
+                        </div>
+                        <div class="answer-box">
+                            <h4>Retrieved Information:</h4>
+                            <p id="chat-answer-text"></p>
+                        </div>
+                        <div id="chat-link-container" class="source-link-container">
+                            <strong>Reference Link:</strong> 
+                            <a id="chat-source-url" href="#" target="_blank" rel="noopener noreferrer">Official NIH Reference</a>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <p id="chat-disclaimer" class="disclaimer-text"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature 2: Record Personal Health Entry -->
+        <section id="panel-record" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-record">
+            <div class="panel-header">
+                <h2>Record Personal Health Entry</h2>
+                <p class="panel-desc">
+                    Log personal symptoms, vital signs, or health observations. Data is saved locally in your private SQLite database.
+                </p>
+            </div>
+
+            <form id="record-form" class="card form-card">
+                <div id="record-feedback" class="feedback-banner hidden" role="status"></div>
+
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="record-type">Record Category: <span class="required">*</span></label>
+                        <select id="record-type" name="record_type" required>
+                            <option value="symptom">Symptom Observation</option>
+                            <option value="measurement">Vital / Measurement</option>
+                            <option value="general_note">General Health Note</option>
+                        </select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="record-date">Recorded Date: <span class="required">*</span></label>
+                        <input type="date" id="record-date" name="recorded_date" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="record-title">Title / Summary: <span class="required">*</span></label>
+                    <input type="text" id="record-title" name="title" required maxlength="150"
+                           placeholder="e.g., Morning Headache, Resting Blood Pressure, Routine Walk">
+                </div>
+
+                <!-- Dynamic Measurement Fields (Visible for 'measurement') -->
+                <div id="measurement-fields" class="form-row form-subgroup hidden">
+                    <div class="form-group flex-2">
+                        <label for="metric-name">Metric Name:</label>
+                        <input type="text" id="metric-name" name="metric_name" maxlength="50"
+                               placeholder="e.g., Systolic BP, Heart Rate, Blood Glucose">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="metric-value">Value:</label>
+                        <input type="number" id="metric-value" name="metric_value" step="any"
+                               placeholder="e.g., 120, 72, 98.6">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="metric-unit">Unit:</label>
+                        <input type="text" id="metric-unit" name="metric_unit" maxlength="20"
+                               placeholder="e.g., mmHg, bpm, mg/dL, °F">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="record-description">Details &amp; Notes (Optional):</label>
+                    <textarea id="record-description" name="description" rows="3" maxlength="1000"
+                              placeholder="Add any context, triggers, or observations..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="record-submit-btn" class="btn btn-primary">Save Health Record</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Feature 3: Chronological Health History -->
+        <section id="panel-history" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-history">
+            <div class="panel-header header-with-actions">
+                <div>
+                    <h2>Chronological Health History</h2>
+                    <p class="panel-desc">All saved personal health records displayed in reverse chronological order.</p>
+                </div>
+                <div class="filter-controls">
+                    <label for="history-filter">Filter Category:</label>
+                    <select id="history-filter">
+                        <option value="">All Categories</option>
+                        <option value="symptom">Symptoms Only</option>
+                        <option value="measurement">Measurements Only</option>
+                        <option value="general_note">Notes Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="history-container" class="timeline-container">
+                <div id="history-loading" class="loading-state">Loading personal health records...</div>
+                <div id="history-empty" class="empty-state hidden">
+                    <p>No health records have been logged yet.</p>
+                    <button type="button" class="btn btn-sm btn-secondary" id="history-go-add">Add Your First Record</button>
+                </div>
+                <div id="history-list" class="timeline-list"></div>
+            </div>
+        </section>
+
+        <!-- Feature 4: Medication Reminders -->
+        <section id="panel-reminders" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-reminders">
+            <div class="panel-header">
+                <h2>Medication Schedules &amp; Reminders</h2>
+                <p class="panel-desc">
+                    Configure daily medication reminder times and track scheduled occurrences.
+                </p>
+            </div>
+
+            <!-- Transparency notice on in-browser reminder limitations -->
+            <div class="notice-box">
+                <strong>&#9432; In-Browser Reminder Notice:</strong>
+                As a local academic prototype, reminder alerts trigger only while this application is running and this browser tab remains open. 
+                Alerts cannot trigger while the browser is closed or the computer is asleep.
+            </div>
+
+            <div class="two-column-layout">
+                <!-- Schedule Creation Form -->
+                <div class="col-form">
+                    <form id="medication-form" class="card form-card">
+                        <h3>New Medication Schedule</h3>
+                        <div id="med-feedback" class="feedback-banner hidden" role="status"></div>
+
+                        <div class="form-group">
+                            <label for="med-name">Medication Name: <span class="required">*</span></label>
+                            <input type="text" id="med-name" name="medication_name" required maxlength="100"
+                                   placeholder="e.g., Metformin, Lisinopril, Vitamin D">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="med-dosage">Dosage: <span class="required">*</span></label>
+                                <input type="text" id="med-dosage" name="dosage" required maxlength="50"
+                                       placeholder="e.g., 500 mg, 1 tablet">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="med-frequency">Frequency: <span class="required">*</span></label>
+                                <input type="text" id="med-frequency" name="frequency" required maxlength="50"
+                                       placeholder="e.g., Once daily, Morning">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="med-time">Reminder Time (24h): <span class="required">*</span></label>
+                                <input type="time" id="med-time" name="reminder_time" required>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="med-start-date">Start Date: <span class="required">*</span></label>
+                                <input type="date" id="med-start-date" name="start_date" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="med-instructions">Instructions (Optional):</label>
+                            <input type="text" id="med-instructions" name="instructions" maxlength="500"
+                                   placeholder="e.g., Take with meals, drink water">
+                        </div>
+
+                        <button type="submit" id="med-submit-btn" class="btn btn-primary">Add Schedule</button>
+                    </form>
+                </div>
+
+                <!-- Active Schedules List -->
+                <div class="col-list">
+                    <div class="card list-card">
+                        <div class="list-card-header">
+                            <h3>Active Medication Routines</h3>
+                            <span id="med-count-badge" class="badge">0 Active</span>
+                        </div>
+                        <div id="med-list" class="schedules-list">
+                            <div id="med-loading" class="loading-state">Loading schedules...</div>
+                            <div id="med-empty" class="empty-state hidden">
+                                <p>No active medication schedules configured.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature 5: Factual Health Record Summary -->
+        <section id="panel-summary" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-btn-summary">
+            <div class="panel-header header-with-actions">
+                <div>
+                    <h2>Factual Health Summary</h2>
+                    <p class="panel-desc">
+                        Strictly computed from your saved SQLite personal health records without speculative or fabricated diagnoses.
+                    </p>
+                </div>
+                <button type="button" id="summary-refresh-btn" class="btn btn-sm btn-secondary">Refresh Summary</button>
+            </div>
+
+            <div id="summary-content" class="summary-dashboard">
+                <div id="summary-loading" class="loading-state">Aggregating records...</div>
+
+                <div id="summary-empty-view" class="card empty-card hidden">
+                    <h3>No Records Logged</h3>
+                    <p id="summary-empty-msg">No health records have been entered yet. History is currently empty.</p>
+                    <p class="disclaimer-text">
+                        Disclaimer: This summary is generated strictly from self-reported records entered by the user.
+                    </p>
+                </div>
+
+                <div id="summary-active-view" class="summary-sections hidden">
+                    <!-- Key Statistics Cards -->
+                    <div class="stats-row">
+                        <div class="stat-card card">
+                            <span class="stat-number" id="sum-total-records">0</span>
+                            <span class="stat-label">Total Records Logged</span>
+                        </div>
+                        <div class="stat-card card">
+                            <span class="stat-number" id="sum-symptoms-count">0</span>
+                            <span class="stat-label">Symptom Entries</span>
+                        </div>
+                        <div class="stat-card card">
+                            <span class="stat-number" id="sum-measurements-count">0</span>
+                            <span class="stat-label">Vital Measurements</span>
+                        </div>
+                        <div class="stat-card card">
+                            <span class="stat-number" id="sum-notes-count">0</span>
+                            <span class="stat-label">General Notes</span>
+                        </div>
+                    </div>
+
+                    <div class="card info-card">
+                        <h4>Log Timeframe</h4>
+                        <p id="sum-timespan" class="summary-text">-</p>
+                    </div>
+
+                    <!-- Symptoms Breakdown -->
+                    <div class="card info-card">
+                        <h4>Documented Symptoms</h4>
+                        <div id="sum-symptoms-list" class="tags-container"></div>
+                    </div>
+
+                    <!-- Measurements Breakdown -->
+                    <div class="card info-card">
+                        <h4>Health Measurement Summary</h4>
+                        <div id="sum-measurements-container" class="measurements-grid"></div>
+                    </div>
+
+                    <!-- Non-Diagnostic Disclaimer -->
+                    <div class="card disclaimer-card">
+                        <p id="summary-disclaimer-text" class="disclaimer-text"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Intelligent Personal Health Record (PHR) Assistant &bull; Academic Research Prototype</p>
+        <p class="footer-note">General medical knowledge sourced from NIH MedQuAD. Personal records stored locally.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+

@@ -1,0 +1,17 @@
+﻿.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+
+.env
+.env.*
+!.env.example
+
+data/phr_database.db
+data/phr_database.db-*
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+data/MedQuAD/
